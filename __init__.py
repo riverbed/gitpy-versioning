@@ -9,6 +9,7 @@ from __future__ import unicode_literals, print_function, division
 import re
 from subprocess import Popen, PIPE
 import os
+import inspect
 
 """
 This module contains code for interacting with git repositories. It is
@@ -16,13 +17,19 @@ used to determine an appropriate version number from either the local
 git repository tags or from a version file.
 """
 
-def verify_repository():
+def verify_repository(pkg_file):
     """Raise an error if this source file is not in tracked by git."""
+    dirname = os.path.dirname(pkg_file)
+    basename = os.path.basename(pkg_file)
 
-    f = os.path.dirname(os.path.abspath(__file__))
-    process = Popen(['git', 'ls-files', f, '--error-unmatch'],
-                    stdout=PIPE, stderr=PIPE)
-    stdout, stderr = process.communicate()
+    cwd = os.getcwd()
+    try:
+        os.chdir(dirname)
+        process = Popen(['git', 'ls-files', basename, '--error-unmatch'],
+                        stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+    finally:
+        os.chdir(cwd)
 
     if stderr:
         # Not a git repo
@@ -103,14 +110,21 @@ def parse_tag():
             'sha': sha.strip(), }
 
 
-def get_version(v_file='RELEASE-VERSION'):
+def get_version(pkg_file=None, v_file='RELEASE-VERSION'):
     """Return <tag>.post<commits> style version string.
+
+    :param pkg_file: Some filename in the package, used to test if this
+       is a live git repostitory (defaults to caller's file)
 
     :param v_file: Fallback path name to a file where release_version is saved
     """
 
+    if pkg_file is None:
+        parent_frame = inspect.stack()[1]
+        pkg_file = inspect.getabsfile(parent_frame[0])
+
     try:
-        verify_repository()
+        verify_repository(pkg_file)
         git_info = parse_tag()
         branch = get_branch()
         assert branch == 'master'
@@ -124,8 +138,11 @@ def get_version(v_file='RELEASE-VERSION'):
 
     except EnvironmentError:
         # Not a git repository, so fall back to reading RELEASE-VERSION
-        with open(v_file, 'r') as f:
-            version = f.read()
+        if (os.path.exists(v_file)):
+            with open(v_file, 'r') as f:
+                version = f.read()
+        else:
+            version = 'unknown'
 
     except AssertionError:
         print('Release version string can only be derived from master branch.'
