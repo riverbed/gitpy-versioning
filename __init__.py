@@ -134,9 +134,14 @@ def get_version(pkg_file=None, v_file='RELEASE-VERSION'):
                 version = '%s.post%s' % (git_info['version'], git_info['commits'])
         else:
             # Still allow building of the package, but give it
-            # a different version
-            version = '%s-%s-%s' % (
-                git_info['version'], branch, git_info['sha'])
+            # a different version.  The use of g_ ensures that
+            # python will give it the proper ordering after final
+            # but before post:
+            #   6.0.0                   -> 6, 0, 0, *final
+            #   6.0.0-g_branch-34-hash  -> 6, 0, 0, *g_branch, 34 hash
+            #   6.0.0-post34            -> 6, 0, 0, *post, 34
+            version = '%s-g_%s-%s-%s' % (
+                git_info['version'], branch, git_info['commits'], git_info['sha'])
 
         with open(v_file, 'w') as f:
             f.write(version)
