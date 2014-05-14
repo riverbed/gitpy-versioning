@@ -127,11 +127,16 @@ def get_version(pkg_file=None, v_file='RELEASE-VERSION'):
         verify_repository(pkg_file)
         git_info = parse_tag()
         branch = get_branch()
-        assert branch == 'master'
-        if git_info['commits'] == '0':
-            version = git_info['version']
+        if branch == 'master':
+            if git_info['commits'] == '0':
+                version = git_info['version']
+            else:
+                version = '%s.post%s' % (git_info['version'], git_info['commits'])
         else:
-            version = '%s.post%s' % (git_info['version'], git_info['commits'])
+            # Still allow building of the package, but give it
+            # a different version
+            version = '%s-%s-%s' % (
+                git_info['version'], branch, git_info['sha'])
 
         with open(v_file, 'w') as f:
             f.write(version)
@@ -140,7 +145,7 @@ def get_version(pkg_file=None, v_file='RELEASE-VERSION'):
         # Not a git repository, so fall back to reading RELEASE-VERSION
         if (os.path.exists(v_file)):
             with open(v_file, 'r') as f:
-                version = f.read()
+                version = f.read().strip()
         else:
             version = 'unknown'
 
