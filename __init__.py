@@ -1,21 +1,20 @@
 # Copyright (c) 2014 Riverbed Technology, Inc.
 #
-# This software is licensed under the terms and conditions of the
-# MIT License set forth at:
-#   https://github.com/riverbed/sleepwalker/blob/master/LICENSE ("License").
-# This software is distributed "AS IS" as set forth in the License.
-
-from __future__ import unicode_literals, print_function, division
-import re
-from subprocess import Popen, PIPE
-import os
-import inspect
+# This software is licensed under the terms and conditions of the MIT License
+# accompanying the software ("License").  This software is distributed "AS IS"
+# as set forth in the License.
 
 """
 This module contains code for interacting with git repositories. It is
 used to determine an appropriate version number from either the local
 git repository tags or from a version file.
 """
+
+from __future__ import unicode_literals, print_function, division
+import os
+import inspect
+from subprocess import Popen, PIPE
+
 
 def verify_repository(pkg_file):
     """Raise an error if this source file is not in tracked by git."""
