@@ -315,8 +315,9 @@ def get_version(pkg_name=None, pkg_file=None, v_file='RELEASE-VERSION'):
         with open(v_file, 'w') as f:
             f.write(version)
 
-    except EnvironmentError:
-        # Not a git repository, so fall back to reading RELEASE-VERSION
+    except (EnvironmentError, InvalidString):
+        # Not a git repository or invalid tag
+        # so fall back to reading RELEASE-VERSION
         if (os.path.exists(v_file)):
             with open(v_file, 'r') as f:
                 version = f.read().strip()
