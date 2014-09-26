@@ -18,17 +18,17 @@ from subprocess import Popen, PIPE
 from collections import namedtuple
 
 
-ALPHA_NUM_PERIOD_UNDER_HYPHEN = '[A-Za-z0-9.\-\_]+$'
-ALPHA_PERIOD_PLUS_UNDER_HYPHEN = '[A-Za-z.\+\-\_]+'
+ALPHA_NUM_PERIOD_UNDER_HYPHEN = r'[\w._-]+$'
+ALPHA_PERIOD_PLUS_UNDER_HYPHEN = r'[A-Za-z.+_-]+'
 
 
-INTEGER = '[0-9]+'
-FINAL = '{0}(?:\.{1})*'.format(INTEGER, INTEGER)
-PRE = '(a|b|c){0}'.format(INTEGER)
-POST = '\.post{0}'.format(INTEGER)
-DEV = '\.dev{0}'.format(INTEGER)
-# PEP440 = FINAL + '({0}|{1}|{2})*'.format(PRE, POST, DEV) + '$'
+INTEGER = '\d+'
+FINAL = '\d+(?:\.\d+)*'
+PRE = '(a|b|r?c)\d+'
+POST = '\.post\d+'
+DEV = '\.dev\d+'
 PEP440 = '{0}(?:{1})?(?:{2})?(?:{3})?\s*$'.format(FINAL, PRE, POST, DEV)
+PEP8 = r'[a-z_]+'
 
 
 class InvalidString(Exception):
@@ -42,7 +42,7 @@ class InvalidTag(InvalidString):
     """Exception class for invalid tags
     """
     def __str__(self):
-        return "Invalid tag {0}".format(self.error)
+        return "Invalid tag: {0}".format(self.error)
 
 
 class InvalidBranch(InvalidString):
@@ -61,7 +61,7 @@ class InvalidCommand(InvalidString):
 
 
 def git(cmd, dir=None, input=False):
-    """Return a git command results. raise an EnvironmentError is not a git repo.
+    """Return a git command results. raise an EnvironmentError if not a git repo.
 
     :param cmd: a list of strings with 'git' in front form a git command
     :param dir: dir to change to before run the git command
@@ -99,8 +99,6 @@ def call_git_describe(abbrev=None):
     # --abbrev and --long are mutually exclusive 'git describe' options
     if abbrev is not None:
         cmd.append('--abbrev={0}'.format(abbrev))
-    else:
-        cmd.append('--long')
 
     return git(cmd)
 
@@ -112,30 +110,46 @@ def get_branch():
     return line.split()[-1]
 
 
-def get_parent(branch):
+def get_parents(branch):
     """ Return the parent branch
 
     :param branch: name of the current branch
     """
     input = git(['show-branch'])
-    line = [ln for ln in input.split('\n')
-            if ln.find('*') >= 0 and ln.find(branch) < 0][0]
+    lines = [ln for ln in input.split('\n') if '*' in ln]
     # line is in the form of '+ *++ [parent] commit message'
-    return line.split('[')[1].split(']')[0]
+    res = set([])
+    for ln in lines:
+        name = ln.split('[')[1].split(']')[0]
+        # stripping ^~ and integer on the right
+        name = re.split('\^|~', name)[0]
+        if name != branch:
+            res.add(name)
+    return res
 
 
-def get_non_dev_tag(pkg_name):
-    """Return the most recent non_development tag
+def valid_pep440(string):
+    """return True if string is a valid pep440 version
 
-    :param pkg_name: package name prefixing any tags, type: string
+    :param string: version string
     """
-    input = git(['for-each-ref', '--sort=taggerdate',
-                 '--format', "'%(refname) %(taggerdate)'", 'refs/tags'])
-    line = [ln for ln in input.split('\n')
-            if ln.split()[0].find('.dev') < 0][-1]
-    tag = line.split(' ')[0][11:]
-    validate_tag(tag, pkg_name)
-    return tag
+    return True if re.match(PEP440, string) else False
+
+
+def valid_public_ver(tag, pkg_name):
+    """Return True if tag is a valid public PEP440 version
+
+    if tag is prefixed by a package name, then the package name
+    must match
+
+    :param tag: tag string
+    :param pkg_name: package name if not None, need to prefix tag
+    """
+    if pkg_name is None:
+        return valid_pep440(tag)
+    else:
+        return (tag.startswith(pkg_name + '-') and
+                valid_pep440(tag[len(pkg_name) + 1:]))
 
 
 def tag2cmt(tag):
@@ -165,40 +179,82 @@ def cmt2branch(commit):
     return line.split(' ')[1].split('/')[2][:-5]
 
 
-def git_info(pkg_name):
+def tag2branch(tag):
+    """Return the branch where the tag is on
+
+    :param tag: the tag name
+    """
+    return cmt2branch(tag2cmt(tag))
+
+
+def find_tag(pkg_name, nondev=False):
+    """Return tag that can be used as a version using the following algorithm.
+
+    the latest tag is not necessarily the one to use
+
+    if the tag does not start with a pkg_name:
+       if has not seen a tag with pkg_name,
+            assume single-pkg repo, the tag is chosen
+       else:
+            assume multi-pkg repo, tag is wrong, error
+    else:
+       if matches pkg_name,
+            the tag is chosen
+       else:
+            get next tag, go to the start
+    if run out of commit history,
+       error
+
+    :param pkg_name: package name used to get a valid tag
+    """
+
+    lines = git(['for-each-ref', '--sort=taggerdate',
+                '--format', "'%(refname) %(taggerdate)'", 'refs/tags'])
+    lines = lines.split('\n')
+    # the lines are ordered by time ascending
+    seen_tag_with_pkg = False
+    for ind in range(len(lines) - 1, -1, -1):
+        tag = lines[ind].split(' ')[0][10:]
+
+        if pkg_name is None:
+            if re.match(PEP440, tag):
+                if not nondev or ('.dev' not in tag):
+                    return tag
+        # pkg_name is not None
+        elif re.match(PEP8 + '-\d.*$', tag):
+            seen_tag_with_pkg = True
+            if (tag.startswith(pkg_name + '-') and
+                    re.match(PEP440, tag[len(pkg_name) + 1:])):
+                if not nondev or ('.dev' not in tag):
+                    return tag
+        # tag does not start with a pkg_name
+        elif seen_tag_with_pkg:
+            raise InvalidTag(tag)
+    raise InvalidTag("could not find a valid tag with pkg_name '{0}'"
+                     .format(pkg_name))
+
+
+def get_commits(tag):
+    """Return the number of commits since the tag.
+
+    :param tag: the tag name
+    """
+    return (int(git(['rev-list', '--count', 'HEAD'])) -
+            int(git(['rev-list', '--count', '{0}'.format(tag)], input=True)))
+
+
+def git_info():
     """Return an git_info object, which contains attributes:
-        pkg_name: package name prefixing any tags, type: string
         branch: branch's name, type: string
-        parent: parent branch's name, type: string
         tag: most recent tag, type: string
-        commits: number of commits since most recent tag, type: int
-        sha: short form hash of latest commit, type: string
         tagged_cmt: the commit that the most recent tag points to, type: string
         cmt: latest commit of the current branch, type:string
     """
     branch = get_branch()
-    # A typical full git tag contains four pieces of information: the repo name
-    # the version, the number of commits since the last tag, and the SHA-1 hash
-    # that identifies the commit.
-    long_tag = call_git_describe()
     base_tag = call_git_describe(abbrev=0)
-
-    validate_tag(base_tag, pkg_name)
-
-    # Parse number of commits and sha
-    try:
-        raw_version_str = long_tag.replace(base_tag, '')
-        commits, sha = [part for part in raw_version_str.split('-') if part]
-    except ValueError:
-        # Tuple unpacking failed, so probably an incorrect tag format was used.
-        raise InvalidTag('Parsing error: The git tag seems to be malformed: '
-                         'base {0} long {1}\n---'.format(base_tag, long_tag))
-
-    GitInfo = namedtuple('GitInfo', 'branch tag commits sha tagged_cmt cmt')
+    GitInfo = namedtuple('GitInfo', 'branch tag tagged_cmt cmt')
     return GitInfo(branch=branch,
                    tag=base_tag,
-                   commits=int(commits),
-                   sha=sha[1:],
                    tagged_cmt=tag2cmt(base_tag),
                    cmt=get_commit())
 
@@ -217,9 +273,9 @@ def verify_repository(pkg_file):
 
 def valid_local_ver(version):
     """check if a version is valid.
-       the version needs to consist of ASCII numbers, letters and periods
 
-       :param version: version string to be validated
+    the version needs to consist of ASCII numbers, letters and periods
+    :param version: version string to be validated
     """
     return True if re.match(ALPHA_NUM_PERIOD_UNDER_HYPHEN, version) else False
 
@@ -234,42 +290,13 @@ def increment_rightmost(version, number):
     return version[:-len(num_str)] + str(int(num_str) + number)
 
 
-def is_dev(version):
-    """Return True if the passed-in version is a development version
-
-    :param version: version string
-    """
-    return version.find(".dev") > 0
-
-
-def validate_tag(tag, pkg_name):
-    """Validate if version is a valid pep440 public release string
-
-    :param tag: tag string
-    :param pkg_name: package_name prefixing tag
-    """
-    if pkg_name is None:
-        if not re.match(PEP440, tag):
-            # pkg_name does not prefix the tag raise Exception
-            raise InvalidTag("'{0}' does not follow PEP440".format(tag))
-    else:  # pkg_name is not None
-        if tag.startswith('{0}-'.format(pkg_name)):
-            # tag starts with pkg_name
-            if not re.match(PEP440, tag[(len(pkg_name) + 1):]):
-                # the rest of tag is a valid PEP440 release string, use the tag
-                raise InvalidTag("'{0}' does not follow '{1}-' + PEP440"
-                                 .format(tag, pkg_name))
-        else:
-            raise InvalidTag("'{0}' does not start with '{1}-'"
-                             .format(tag, pkg_name))
-
-
 def get_version(pkg_name=None, pkg_file=None, v_file='RELEASE-VERSION'):
 
     """Return PEP440 style version string.
 
-    :param pkg_name: package name, if not None, tags should be
-       prefixed with pkg_name.
+    :param pkg_name: package name defaults to None for one-pkg repo
+       if multi-pkg repo, package name refers to the pkg based on which
+       release version will be generated
 
     :param pkg_file: Some filename in the package, used to test if this
        is a live git repostitory (defaults to caller's file)
@@ -283,41 +310,52 @@ def get_version(pkg_name=None, pkg_file=None, v_file='RELEASE-VERSION'):
     try:
         verify_repository(pkg_file)
 
-        info = git_info(pkg_name)
+        info = git_info()
 
-        if info.cmt == info.tagged_cmt:
-            # latest commit is tagged
+        if (valid_public_ver(info.tag, pkg_name) and
+                info.cmt == info.tagged_cmt):
             version = info.tag
-        elif cmt2branch(info.tagged_cmt) == get_parent(info.branch):
-            # the most recent tag is on parent branch
-            if valid_local_ver(info.branch):
-                # current branch name is a valid local version
-                version = ('{0}+git.{1}.{2}.{3}'
-                           .format(get_non_dev_tag(pkg_name), info.branch,
-                                   info.commits, info.sha))
-            else:
-                raise InvalidBranch("'{0}' is not a valid local version"
-                                    .format(info.branch))
-
-        elif is_dev(info.tag):
-            # the most recent tag is development tag
-            # increment the N in devN and use the tag
-            version = increment_rightmost(info.tag, info.commits)
-
         else:
-            # the most recent tagged commit is non-dev, increment the least
-            # significant number in the version string and append .devN where N
-            # is the number of commits since the tag
-            version = ('{0}.dev{1}'
-                       .format(increment_rightmost(info.tag, 1),
-                               info.commits))
+            tag = find_tag(pkg_name)
+            if (info.branch != 'master' and
+                    tag2branch(tag) in get_parents(info.branch)):
+                # the most recent tag is on a parent branch
+                if valid_local_ver(info.branch):
+                    # current branch name is a valid local version
+                    non_dev_tag = find_tag(pkg_name, nondev=True)
+                    commits = get_commits(non_dev_tag)
+                    sha = tag2cmt(non_dev_tag)[:7]
+                    version = ('{0}+git.{1}.{2}.{3}'
+                               .format(non_dev_tag, info.branch,
+                                       commits, sha))
+                else:
+                    raise InvalidBranch("'{0}' is not a valid local version"
+                                        .format(info.branch))
+
+            elif'.dev' in tag:
+                # recent tag is non development tag
+                # increment the N in devN and use the tag
+                version = increment_rightmost(tag, get_commits(tag))
+
+            else:
+                # recent tagged commit is non-development, increment the least
+                # significant number in the string and append .devN where N
+                # is the number of commits since the tag
+                version = ('{0}.dev{1}'
+                           .format(increment_rightmost(tag, 1),
+                                   get_commits(tag)))
 
         with open(v_file, 'w') as f:
             f.write(version)
 
-    except (EnvironmentError, InvalidString):
+    except (EnvironmentError, InvalidString) as e:
         # Not a git repository or invalid tag
         # so fall back to reading RELEASE-VERSION
+        if type(e) in [InvalidTag, InvalidCommand, InvalidBranch]:
+            print (e)
+        else:
+            print ('Not a git repository')
+        print ("Reading the version from file '{0}'".format(v_file))
         if (os.path.exists(v_file)):
             with open(v_file, 'r') as f:
                 version = f.read().strip()
