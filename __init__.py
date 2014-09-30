@@ -166,7 +166,9 @@ def get_commit():
 
 
 def tag2branches(tag):
-    """Return the branches containing the given tag in their history except itself
+    """Return the branches containing the given tag in their history
+
+    except the current branch.
 
     :param tag: the tag name
     """
