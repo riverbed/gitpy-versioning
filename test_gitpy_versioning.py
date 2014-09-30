@@ -32,6 +32,9 @@ def test_pep440_public():
     assert not gitpy_versioning.valid_public_ver('1.0.dev1.post34')
     assert not gitpy_versioning.valid_public_ver('1.0.dev1a1')
     assert not gitpy_versioning.valid_public_ver('1.0.post45a2')
+    assert not gitpy_versioning.valid_public_ver('1.0a')
+    assert not gitpy_versioning.valid_public_ver('1.0.1.dev')
+    assert not gitpy_versioning.valid_public_ver('2.3.4.post')
 
 
 def test_pep440_local():
@@ -114,16 +117,11 @@ class GetVersionTestCase(unittest.TestCase):
         e5 = "'7ce9dfa80816ea61e112b9911f30d812e9567cf5'"
         # git for-each-ref --sort=taggerdate
         #    --format  '%(refname) %(taggerdate)' refs/tags
-        e6 = 'refs/tags/1.0 Fri Sep 26 09:59:53 2014 -0400'
+        e6 = "'refs/tags/1.0 Fri Sep 26 09:59:53 2014 -0400'"
         # git rev-list 1.0
         e7 = e4
-        # git reflog show --all
-        e8 = ('7ce9dfa refs/heads/grand-child@{0}: '
-              'commit: commit on grand child\n'
-              'b6bccde refs/heads/child@{0}: '
-              'commit: commit-on-child\n'
-              'aeb6d46 refs/heads/child@{1}: '
-              'branch: Created from master')
+        # git branch --contains aeb6d4612b6da9310ca2859ab53c99edf97fc08c
+        e8 = '  child\n* grand-child'
         # git show-branch
         e9 = ('! [child] commit-on-child\n'
               ' * [grand-child] commit on grand child\n'
@@ -139,8 +137,6 @@ class GetVersionTestCase(unittest.TestCase):
         e11 = '4'
         # git rev-list --count 1.0
         e12 = '2'
-        # git rev-list 1.0
-        e13 = e4
 
         args_list = [['ls-files', 'test_gitpy_versioning.py',
                       '--error-unmatch'],
@@ -151,38 +147,37 @@ class GetVersionTestCase(unittest.TestCase):
                      ['for-each-ref', '--sort=taggerdate', '--format',
                       "'%(refname) %(taggerdate)'", 'refs/tags'],
                      ['rev-list', '1.0'],
-                     ['reflog', 'show', '--all'],
+                     ['branch', '--contains',
+                      'aeb6d4612b6da9310ca2859ab53c99edf97fc08c'],
                      ['show-branch'],
                      ['for-each-ref', '--sort=taggerdate', '--format',
                       "'%(refname) %(taggerdate)'", 'refs/tags'],
                      ['rev-list', '--count', 'HEAD'],
-                     ['rev-list', '--count', '1.0'],
-                     ['rev-list', '1.0']]
+                     ['rev-list', '--count', '1.0']]
 
         with patch('__init__.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
-                                          e11, e12, e13])) as patch_git:
+                                          e11, e12])) as patch_git:
             self.assertEquals(gitpy_versioning.get_version(),
-                              '1.0+git.grand-child.2.aeb6d46')
+                              '1.0+git.grand-child.2.7ce9dfa')
             commands.getstatusoutput('rm -f RELEASE-VERSION')
             self.verify_call_sequence(patch_git, args_list)
 
         # test with package name prefixing
         e3 = 'version-1.0'
-        e6 = 'refs/tags/version-1.0 Fri Sep 26 09:59:53 2014 -0400'
+        e6 = "'refs/tags/version-1.0 Fri Sep 26 09:59:53 2014 -0400'"
         e10 = e6
         with patch('__init__.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
-                                          e11, e12, e13])) as patch_git:
+                                          e11, e12])) as patch_git:
             self.assertEquals(gitpy_versioning.get_version('version'),
-                              'version-1.0+git.grand-child.2.aeb6d46')
+                              'version-1.0+git.grand-child.2.7ce9dfa')
             commands.getstatusoutput('rm -f RELEASE-VERSION')
             args_list[3][1] = e3
             args_list[6][1] = e3
             args_list[11][2] = e3
-            args_list[12][1] = e3
             self.verify_call_sequence(patch_git, args_list)
 
     def test_non_dev_and_dev(self):
@@ -214,17 +209,12 @@ class GetVersionTestCase(unittest.TestCase):
         e5 = "'ea1d6aae6b2f89721fc200d752119ffb1bbdc861'"
         # git for-each-ref --sort=taggerdate
         #    --format  '%(refname) %(taggerdate)' refs/tags
-        e6 = ('refs/tags/1.0 Fri Sep 26 09:59:53 2014 -0400\n'
-              'refs/tags/1.1 Fri Sep 26 11:22:12 2014 -0400')
+        e6 = ("'refs/tags/1.0 Fri Sep 26 09:59:53 2014 -0400'\n"
+              "'refs/tags/1.1 Fri Sep 26 11:22:12 2014 -0400'")
         # git rev-list 1.1
         e7 = e4
-        # git reflog show --all
-        e8 = ('ea1d6aa refs/heads/grand-child@{0}: '
-              'commit: another commit on grandchild\n'
-              '7ce9dfa refs/heads/grand-child@{1}: '
-              'commit: commit on grand child\n'
-              'b6bccde refs/heads/child@{0}: commit: commit-on-child\n'
-              'aeb6d46 refs/heads/child@{1}: branch: Created from master')
+        # git branch --contains 7ce9dfa80816ea61e112b9911f30d812e9567cf5
+        e8 = '* grand-child'
         # git show-branch
         e9 = ('! [child] commit-on-child\n'
               ' * [grand-child] another commit on grandchild\n'
@@ -248,7 +238,8 @@ class GetVersionTestCase(unittest.TestCase):
                      ['for-each-ref', '--sort=taggerdate', '--format',
                       "'%(refname) %(taggerdate)'", 'refs/tags'],
                      ['rev-list', '1.1'],
-                     ['reflog', 'show', '--all'],
+                     ['branch', '--contains',
+                      '7ce9dfa80816ea61e112b9911f30d812e9567cf5'],
                      ['show-branch'],
                      ['rev-list', '--count', 'HEAD'],
                      ['rev-list', '--count', '1.1']]
@@ -263,8 +254,8 @@ class GetVersionTestCase(unittest.TestCase):
 
         # test with package name prefixing
         e3 = 'version-1.1'
-        e6 = ('refs/tags/version-1.0 Fri Sep 26 09:59:53 2014 -0400\n'
-              'refs/tags/version-1.1 Fri Sep 26 11:22:12 2014 -0400')
+        e6 = ("'refs/tags/version-1.0 Fri Sep 26 09:59:53 2014 -0400'\n"
+              "'refs/tags/version-1.1 Fri Sep 26 11:22:12 2014 -0400'")
         with patch('__init__.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
@@ -280,8 +271,8 @@ class GetVersionTestCase(unittest.TestCase):
 
         # Test case when the recent applicable tag is development release
         e3 = '1.1.dev1'
-        e6 = ('refs/tags/1.0 Fri Sep 26 09:59:53 2014 -0400\n'
-              'refs/tags/1.1.dev1 Fri Sep 26 11:22:12 2014 -0400')
+        e6 = ("'refs/tags/1.0 Fri Sep 26 09:59:53 2014 -0400'\n"
+              "'refs/tags/1.1.dev1 Fri Sep 26 11:22:12 2014 -0400'")
         with patch('__init__.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
@@ -296,8 +287,8 @@ class GetVersionTestCase(unittest.TestCase):
 
         # Test case when pkg_name prefixing
         e3 = 'version-1.1.dev1'
-        e6 = ('refs/tags/version-1.0 Fri Sep 26 09:59:53 2014 -0400\n'
-              'refs/tags/version-1.1.dev1 Fri Sep 26 11:22:12 2014 -0400')
+        e6 = ("'refs/tags/version-1.0 Fri Sep 26 09:59:53 2014 -0400'\n"
+              "'refs/tags/version-1.1.dev1 Fri Sep 26 11:22:12 2014 -0400'")
         with patch('__init__.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
@@ -313,4 +304,6 @@ class GetVersionTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    test_pep440_public()
+    test_pep440_local()
     unittest.main()
