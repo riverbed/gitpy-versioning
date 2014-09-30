@@ -62,7 +62,7 @@ class GetVersionTestCase(unittest.TestCase):
 
         """
         # git ls-files test_gitpy_versioning.py --error-unmatch
-        e1 = 'setup.py'
+        e1 = 'test_gitpy_versioning.py'
         # git branch
         e2 = '  master\n  myreschema\n  new@branch\n  newreschema\n* wreschema'
         # git describe --abbrev=0
