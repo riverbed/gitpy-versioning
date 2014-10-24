@@ -5,8 +5,8 @@
 # as set forth in the License.
 
 import unittest
-import __init__ as gitpy_versioning
 import commands
+import gitpy_versioning
 from mock import patch, MagicMock
 
 
@@ -82,7 +82,7 @@ class GetVersionTestCase(unittest.TestCase):
                      ['rev-list', '0.4.9'],
                      ['log', '-n', '1', "--pretty=format:'%H'"]]
 
-        with patch('__init__.git',
+        with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5])) as patch_git:
             self.assertEquals(gitpy_versioning.get_version(), '0.4.9')
             commands.getstatusoutput('rm -f RELEASE-VERSION')
@@ -91,7 +91,7 @@ class GetVersionTestCase(unittest.TestCase):
 
         # change the tag to be package_name prefixed
         e3 = 'reschema-0.4.9'
-        with patch('__init__.git',
+        with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5])) as patch_git:
             self.assertEquals(gitpy_versioning.get_version('reschema'), e3)
             commands.getstatusoutput('rm -f RELEASE-VERSION')
@@ -155,7 +155,7 @@ class GetVersionTestCase(unittest.TestCase):
                      ['rev-list', '--count', 'HEAD'],
                      ['rev-list', '--count', '1.0']]
 
-        with patch('__init__.git',
+        with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11, e12])) as patch_git:
@@ -168,7 +168,7 @@ class GetVersionTestCase(unittest.TestCase):
         e3 = 'version-1.0'
         e6 = "'refs/tags/version-1.0 Fri Sep 26 09:59:53 2014 -0400'"
         e10 = e6
-        with patch('__init__.git',
+        with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11, e12])) as patch_git:
@@ -244,7 +244,7 @@ class GetVersionTestCase(unittest.TestCase):
                      ['rev-list', '--count', 'HEAD'],
                      ['rev-list', '--count', '1.1']]
 
-        with patch('__init__.git',
+        with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
@@ -256,7 +256,7 @@ class GetVersionTestCase(unittest.TestCase):
         e3 = 'version-1.1'
         e6 = ("'refs/tags/version-1.0 Fri Sep 26 09:59:53 2014 -0400'\n"
               "'refs/tags/version-1.1 Fri Sep 26 11:22:12 2014 -0400'")
-        with patch('__init__.git',
+        with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
@@ -273,7 +273,7 @@ class GetVersionTestCase(unittest.TestCase):
         e3 = '1.1.dev1'
         e6 = ("'refs/tags/1.0 Fri Sep 26 09:59:53 2014 -0400'\n"
               "'refs/tags/1.1.dev1 Fri Sep 26 11:22:12 2014 -0400'")
-        with patch('__init__.git',
+        with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
@@ -289,7 +289,7 @@ class GetVersionTestCase(unittest.TestCase):
         e3 = 'version-1.1.dev1'
         e6 = ("'refs/tags/version-1.0 Fri Sep 26 09:59:53 2014 -0400'\n"
               "'refs/tags/version-1.1.dev1 Fri Sep 26 11:22:12 2014 -0400'")
-        with patch('__init__.git',
+        with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
