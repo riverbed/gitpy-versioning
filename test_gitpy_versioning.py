@@ -5,9 +5,8 @@
 # as set forth in the License.
 
 import unittest
-import commands
 import gitpy_versioning
-from mock import patch, MagicMock
+from mock import patch, MagicMock, mock_open
 
 
 def test_pep440_public():
@@ -84,8 +83,8 @@ class GetVersionTestCase(unittest.TestCase):
 
         with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5])) as patch_git:
-            self.assertEquals(gitpy_versioning.get_version(), '0.4.9')
-            commands.getstatusoutput('rm -f RELEASE-VERSION')
+            with patch('gitpy_versioning.open', mock_open(), create=True):
+                self.assertEquals(gitpy_versioning.get_version(), '0.4.9')
 
             self.verify_call_sequence(patch_git, args_list)
 
@@ -93,8 +92,8 @@ class GetVersionTestCase(unittest.TestCase):
         e3 = 'reschema-0.4.9'
         with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5])) as patch_git:
-            self.assertEquals(gitpy_versioning.get_version('reschema'), e3)
-            commands.getstatusoutput('rm -f RELEASE-VERSION')
+            with patch('gitpy_versioning.open', mock_open(), create=True):
+                self.assertEquals(gitpy_versioning.get_version('reschema'), e3)
 
             args_list[3][1] = e3
             self.verify_call_sequence(patch_git, args_list)
@@ -159,9 +158,9 @@ class GetVersionTestCase(unittest.TestCase):
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11, e12])) as patch_git:
-            self.assertEquals(gitpy_versioning.get_version(),
-                              '1.0+git.grand-child.2.7ce9dfa')
-            commands.getstatusoutput('rm -f RELEASE-VERSION')
+            with patch('gitpy_versioning.open', mock_open(), create=True):
+                self.assertEquals(gitpy_versioning.get_version(),
+                                  '1.0+git.grand-child.2.7ce9dfa')
             self.verify_call_sequence(patch_git, args_list)
 
         # test with package name prefixing
@@ -172,9 +171,9 @@ class GetVersionTestCase(unittest.TestCase):
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11, e12])) as patch_git:
-            self.assertEquals(gitpy_versioning.get_version('version'),
-                              'version-1.0+git.grand-child.2.7ce9dfa')
-            commands.getstatusoutput('rm -f RELEASE-VERSION')
+            with patch('gitpy_versioning.open', mock_open(), create=True):
+                self.assertEquals(gitpy_versioning.get_version('version'),
+                                  'version-1.0+git.grand-child.2.7ce9dfa')
             args_list[3][1] = e3
             args_list[6][1] = e3
             args_list[11][2] = e3
@@ -248,8 +247,8 @@ class GetVersionTestCase(unittest.TestCase):
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
-            self.assertEquals(gitpy_versioning.get_version(), '1.2.dev1')
-            commands.getstatusoutput('rm -f RELEASE-VERSION')
+            with patch('gitpy_versioning.open', mock_open(), create=True):
+                self.assertEquals(gitpy_versioning.get_version(), '1.2.dev1')
             self.verify_call_sequence(patch_git, args_list)
 
         # test git rev-list --count fallback
@@ -277,9 +276,9 @@ class GetVersionTestCase(unittest.TestCase):
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
-            self.assertEquals(gitpy_versioning.get_version('version'),
-                              'version-1.2.dev1')
-            commands.getstatusoutput('rm -f RELEASE-VERSION')
+            with patch('gitpy_versioning.open', mock_open(), create=True):
+                self.assertEquals(gitpy_versioning.get_version('version'),
+                                  'version-1.2.dev1')
 
             args_list[3][1] = e3
             args_list[6][1] = e3
@@ -294,8 +293,8 @@ class GetVersionTestCase(unittest.TestCase):
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
-            self.assertEquals(gitpy_versioning.get_version(), '1.1.dev2')
-            commands.getstatusoutput('rm -f RELEASE-VERSION')
+            with patch('gitpy_versioning.open', mock_open(), create=True):
+                self.assertEquals(gitpy_versioning.get_version(), '1.1.dev2')
 
             args_list[3][1] = e3
             args_list[6][1] = e3
@@ -310,9 +309,9 @@ class GetVersionTestCase(unittest.TestCase):
                    MagicMock(side_effect=[e1, e2, e3, e4, e5,
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
-            self.assertEquals(gitpy_versioning.get_version('version'),
-                              'version-1.1.dev2')
-            commands.getstatusoutput('rm -f RELEASE-VERSION')
+            with patch('gitpy_versioning.open', mock_open(), create=True):
+                self.assertEquals(gitpy_versioning.get_version('version'),
+                                  'version-1.1.dev2')
 
             args_list[3][1] = e3
             args_list[6][1] = e3
