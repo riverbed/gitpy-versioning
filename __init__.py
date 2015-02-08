@@ -232,8 +232,15 @@ def get_commits(tag):
 
     :param tag: the tag name
     """
-    return (int(git(['rev-list', '--count', 'HEAD'])) -
-            int(git(['rev-list', '--count', '{0}'.format(tag)], input=True)))
+    try:
+        return (int(git(['rev-list', '--count', 'HEAD'])) -
+                int(git(['rev-list', '--count', '{0}'.format(tag)],
+                        input=True)))
+    except EnvironmentError:
+        # Older git versions do not support '--count'
+        return (len(git(['rev-list', 'HEAD']).split('\n')) -
+                len(git(['rev-list', '{0}'.format(tag)],
+                        input=True).split('\n')))
 
 
 def git_info():
@@ -327,7 +334,7 @@ def get_version(pkg_name=None, pkg_file=None, v_file='RELEASE-VERSION'):
                     raise InvalidBranch("'{0}' is not a valid local version"
                                         .format(info.branch))
 
-            elif'.dev' in tag:
+            elif '.dev' in tag:
                 # recent tag is a development tag
                 # increment the N in devN by number of commits
                 version = increment_rightmost(tag, get_commits(tag))

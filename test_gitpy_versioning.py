@@ -252,6 +252,23 @@ class GetVersionTestCase(unittest.TestCase):
             commands.getstatusoutput('rm -f RELEASE-VERSION')
             self.verify_call_sequence(patch_git, args_list)
 
+        # test git rev-list --count fallback
+        # Instead of returning '5' and '4', return text with that many
+        # lines in it.  The contents of the lines are ignored.
+        # The last call is replaced by retries without --count.
+        fallback_args_list = args_list[:-1]
+        fallback_args_list.extend((['rev-list', 'HEAD'],
+                                   ['rev-list', '1.1']))
+        with patch('gitpy_versioning.git',
+                   MagicMock(side_effect=[e1, e2, e3, e4, e5,
+                                          e6, e7, e8, e9,
+                                          EnvironmentError,
+                                          '1\n2\n3\n4\n5',
+                                          '1\n2\n3\n4'])) as patch_git:
+            self.assertEquals(gitpy_versioning.get_version(), '1.2.dev1')
+            commands.getstatusoutput('rm -f RELEASE-VERSION')
+            self.verify_call_sequence(patch_git, fallback_args_list)
+
         # test with package name prefixing
         e3 = 'version-1.1'
         e6 = ("'refs/tags/version-1.0 Fri Sep 26 09:59:53 2014 -0400'\n"
