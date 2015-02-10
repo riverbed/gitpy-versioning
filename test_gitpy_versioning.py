@@ -264,8 +264,8 @@ class GetVersionTestCase(unittest.TestCase):
                                           EnvironmentError,
                                           '1\n2\n3\n4\n5',
                                           '1\n2\n3\n4'])) as patch_git:
-            self.assertEquals(gitpy_versioning.get_version(), '1.2.dev1')
-            commands.getstatusoutput('rm -f RELEASE-VERSION')
+            with patch('gitpy_versioning.open', mock_open(), create=True):
+                self.assertEquals(gitpy_versioning.get_version(), '1.2.dev1')
             self.verify_call_sequence(patch_git, fallback_args_list)
 
         # test with package name prefixing
