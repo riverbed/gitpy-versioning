@@ -5,8 +5,9 @@
 # as set forth in the License.
 
 """
-This module contains code for interacting with git repositories. It is
-used to determine an appropriate version number from either the local
+This module contains code for interacting with git repositories.
+
+It is used to determine an appropriate version number from either the local
 git repository tags or from a version file.
 """
 
@@ -31,32 +32,45 @@ PEP8 = r'[a-z_]+'
 
 
 class InvalidString(Exception):
-    """Invalid strings"""
+
+    """Invalid strings."""
+
     def __init__(self, error):
+        """Initialize error string."""
         self.error = error
 
 
 class InvalidTag(InvalidString):
-    """Exception class for invalid tags"""
+
+    """Exception class for invalid tags."""
+
     def __str__(self):
+        """Format invalid tag string."""
         return "Invalid tag: {0}".format(self.error)
 
 
 class InvalidBranch(InvalidString):
-    """Exception class for invalid tags"""
+
+    """Exception class for invalid branches."""
+
     def __str__(self):
+        """Format invalid branch string."""
         return "Invalid branch {0}".format(self.error)
 
 
 class InvalidCommand(InvalidString):
-    """Exception class for invalid git command"""
+
+    """Exception class for invalid git command."""
+
     def __str__(self):
+        """Format invalid command string."""
         return ("Invalid command {0}, \n Exception {1}"
                 .format(' '.join(self.error[0]), self.error[1]))
 
 
 def git(cmd, dir=None, input=False):
-    """Return a git command results. raise an EnvironmentError if not a git repo.
+    """
+    Return a git command results. raise an EnvironmentError if not a git repo.
 
     :param cmd: a list of strings with 'git' in front form a git command
     :param dir: dir to change to before run the git command
@@ -85,7 +99,8 @@ def git(cmd, dir=None, input=False):
 
 
 def call_git_describe(abbrev=None):
-    """Return 'git describe' output.
+    """
+    Return 'git describe' output.
 
     :param abbrev: Integer to use as the --abbrev value for git describe
     """
@@ -100,14 +115,14 @@ def call_git_describe(abbrev=None):
 
 def get_branch():
     """Return the current branch's name."""
-
     input = git(['branch'])
     line = [ln for ln in input.split('\n') if ln.startswith('*')][0]
     return line.split()[-1]
 
 
 def get_parents(branch):
-    """ Return the parent branch
+    """
+    Return the parent branch.
 
     :param branch: name of the current branch
     """
@@ -125,7 +140,8 @@ def get_parents(branch):
 
 
 def valid_pep440(string):
-    """return True if string is a valid pep440 version
+    """
+    Return True if string is a valid pep440 version.
 
     :param string: version string
     """
@@ -133,10 +149,11 @@ def valid_pep440(string):
 
 
 def valid_public_ver(tag, pkg_name=None):
-    """Return True if tag is a valid public PEP440 version
+    """
+    Return True if tag is a valid public PEP440 version.
 
-    if tag is prefixed by a package name, then the package name
-    must match
+    If tag is prefixed by a package name, then the package name
+    must match.
 
     :param tag: tag string
     :param pkg_name: package name if not None, need to prefix tag
@@ -149,7 +166,8 @@ def valid_public_ver(tag, pkg_name=None):
 
 
 def tag2cmt(tag):
-    """Return the commit that the tag points to
+    """
+    Return the commit that the tag points to.
 
     :param tag: the tag on the inquired commit, type:string
     """
@@ -158,7 +176,7 @@ def tag2cmt(tag):
 
 
 def get_commit():
-    """Return the latest commit"""
+    """Return the latest commit."""
     cmt = git(['log', '-n', '1', "--pretty=format:'%H'"])
     # cmt is double-quoted string as "'XXXXXXXXXXX'"
     # need to be stripped one pair of quotes to be normal
@@ -166,9 +184,10 @@ def get_commit():
 
 
 def tag2branches(tag):
-    """Return the branches containing the given tag in their history
+    """
+    Return the branches containing the given tag in their history.
 
-    except the current branch.
+    Does not return the current branch.
 
     :param tag: the tag name
     """
@@ -179,9 +198,10 @@ def tag2branches(tag):
 
 
 def find_tag(pkg_name, nondev=False):
-    """Return tag that can be used as a version using the following algorithm.
+    """
+    Return tag that can be used as a version using the following algorithm.
 
-    the latest tag is not necessarily the one to use
+    The latest tag is not necessarily the one to use.
 
     if the tag does not start with a pkg_name:
        if has not seen a tag with pkg_name,
@@ -198,7 +218,6 @@ def find_tag(pkg_name, nondev=False):
 
     :param pkg_name: package name used to get a valid tag
     """
-
     lines = git(['for-each-ref', '--sort=taggerdate',
                 '--format', "'%(refname) %(taggerdate)'", 'refs/tags'])
     lines = lines.split('\n')
@@ -228,7 +247,8 @@ def find_tag(pkg_name, nondev=False):
 
 
 def get_commits(tag):
-    """Return the number of commits since the tag.
+    """
+    Return the number of commits since the tag.
 
     :param tag: the tag name
     """
@@ -244,11 +264,13 @@ def get_commits(tag):
 
 
 def git_info():
-    """Return an git_info object, which contains attributes:
-        branch: branch's name, type: string
-        tag: most recent tag, type: string
-        tagged_cmt: the commit that the most recent tag points to, type: string
-        cmt: latest commit of the current branch, type:string
+    """
+    Return an git_info object, which contains attributes.
+
+    branch: branch's name, type: string
+    tag: most recent tag, type: string
+    tagged_cmt: the commit that the most recent tag points to, type: string
+    cmt: latest commit of the current branch, type:string
     """
     branch = get_branch()
     base_tag = call_git_describe(abbrev=0)
@@ -260,7 +282,8 @@ def git_info():
 
 
 def verify_repository(pkg_file):
-    """Raise an error if this source file is not in tracked by git.
+    """
+    Raise an error if this source file is not in tracked by git.
 
     :param pkg_file: pkig_file to be tested
     """
@@ -272,16 +295,18 @@ def verify_repository(pkg_file):
 
 
 def valid_local_ver(version):
-    """check if a version is valid.
+    """
+    Check if a version is valid.
 
-    the version needs to consist of ASCII numbers, letters and periods
-    :param version: version string to be validated
+    The version needs to consist of ASCII numbers, letters and periods
+    :param version: version string to be validated.
     """
     return True if re.match(ALPHA_NUM_PERIOD_UNDER_HYPHEN, version) else False
 
 
 def increment_rightmost(version, number):
-    """ increment the rightmost number of the version by the number
+    """
+    Increment the rightmost number of the version by the number.
 
     :param version: the version string
     :param number: the number by which the rightmost number is incremented
@@ -291,8 +316,8 @@ def increment_rightmost(version, number):
 
 
 def get_version(pkg_name=None, pkg_file=None, v_file='RELEASE-VERSION'):
-
-    """Return PEP440 style version string.
+    """
+    Return PEP440 style version string.
 
     :param pkg_name: package name defaults to None for one-pkg repo
        if multi-pkg repo, package name refers to the pkg based on which
