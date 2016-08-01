@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+#
 # Copyright (c) 2014 Riverbed Technology, Inc.
 #
 # This software is licensed under the terms and conditions of the MIT License
@@ -32,7 +34,6 @@ PEP8 = r'[a-z_]+'
 
 
 class InvalidString(Exception):
-
     """Invalid strings."""
 
     def __init__(self, error):
@@ -41,7 +42,6 @@ class InvalidString(Exception):
 
 
 class InvalidTag(InvalidString):
-
     """Exception class for invalid tags."""
 
     def __str__(self):
@@ -50,7 +50,6 @@ class InvalidTag(InvalidString):
 
 
 class InvalidBranch(InvalidString):
-
     """Exception class for invalid branches."""
 
     def __str__(self):
@@ -59,7 +58,6 @@ class InvalidBranch(InvalidString):
 
 
 class InvalidCommand(InvalidString):
-
     """Exception class for invalid git command."""
 
     def __str__(self):
@@ -115,7 +113,7 @@ def call_git_describe(abbrev=None):
 
 def get_branch():
     """Return the current branch's name."""
-    input = git(['branch'])
+    input = git(['branch']).decode('utf-8')
     line = [ln for ln in input.split('\n') if ln.startswith('*')][0]
     return line.split()[-1]
 
