@@ -13,7 +13,6 @@ It is used to determine an appropriate version number from either the local
 git repository tags or from a version file.
 """
 
-from __future__ import unicode_literals, print_function, division
 import os
 import inspect
 import re

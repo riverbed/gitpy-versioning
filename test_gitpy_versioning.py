@@ -52,9 +52,9 @@ class GetVersionTestCase(unittest.TestCase):
         :param args: List of list of arguments for each call
         """
         calls = patched_func.mock_calls
-        self.assertEquals(len(calls), len(args))
+        self.assertEqual(len(calls), len(args))
         for ind in range(len(calls)):
-            self.assertEquals(calls[ind].__getnewargs__()[0][1][0], args[ind])
+            self.assertEqual(calls[ind].__getnewargs__()[0][1][0], args[ind])
 
     def test_commit_tagged(self):
         """Test get_version return expected tag when the latest commit is tagged.
@@ -84,7 +84,7 @@ class GetVersionTestCase(unittest.TestCase):
         with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5])) as patch_git:
             with patch('gitpy_versioning.open', mock_open(), create=True):
-                self.assertEquals(gitpy_versioning.get_version(), '0.4.9')
+                self.assertEqual(gitpy_versioning.get_version(), '0.4.9')
 
             self.verify_call_sequence(patch_git, args_list)
 
@@ -93,7 +93,7 @@ class GetVersionTestCase(unittest.TestCase):
         with patch('gitpy_versioning.git',
                    MagicMock(side_effect=[e1, e2, e3, e4, e5])) as patch_git:
             with patch('gitpy_versioning.open', mock_open(), create=True):
-                self.assertEquals(gitpy_versioning.get_version('reschema'), e3)
+                self.assertEqual(gitpy_versioning.get_version('reschema'), e3)
 
             args_list[3][1] = e3
             self.verify_call_sequence(patch_git, args_list)
@@ -159,7 +159,7 @@ class GetVersionTestCase(unittest.TestCase):
                                           e6, e7, e8, e9, e10,
                                           e11, e12])) as patch_git:
             with patch('gitpy_versioning.open', mock_open(), create=True):
-                self.assertEquals(gitpy_versioning.get_version(),
+                self.assertEqual(gitpy_versioning.get_version(),
                                   '1.0+git.grand-child.2.7ce9dfa')
             self.verify_call_sequence(patch_git, args_list)
 
@@ -172,7 +172,7 @@ class GetVersionTestCase(unittest.TestCase):
                                           e6, e7, e8, e9, e10,
                                           e11, e12])) as patch_git:
             with patch('gitpy_versioning.open', mock_open(), create=True):
-                self.assertEquals(gitpy_versioning.get_version('version'),
+                self.assertEqual(gitpy_versioning.get_version('version'),
                                   'version-1.0+git.grand-child.2.7ce9dfa')
             args_list[3][1] = e3
             args_list[6][1] = e3
@@ -248,7 +248,7 @@ class GetVersionTestCase(unittest.TestCase):
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
             with patch('gitpy_versioning.open', mock_open(), create=True):
-                self.assertEquals(gitpy_versioning.get_version(), '1.2.dev1')
+                self.assertEqual(gitpy_versioning.get_version(), '1.2.dev1')
             self.verify_call_sequence(patch_git, args_list)
 
         # test git rev-list --count fallback
@@ -265,7 +265,7 @@ class GetVersionTestCase(unittest.TestCase):
                                           '1\n2\n3\n4\n5',
                                           '1\n2\n3\n4'])) as patch_git:
             with patch('gitpy_versioning.open', mock_open(), create=True):
-                self.assertEquals(gitpy_versioning.get_version(), '1.2.dev1')
+                self.assertEqual(gitpy_versioning.get_version(), '1.2.dev1')
             self.verify_call_sequence(patch_git, fallback_args_list)
 
         # test with package name prefixing
@@ -277,7 +277,7 @@ class GetVersionTestCase(unittest.TestCase):
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
             with patch('gitpy_versioning.open', mock_open(), create=True):
-                self.assertEquals(gitpy_versioning.get_version('version'),
+                self.assertEqual(gitpy_versioning.get_version('version'),
                                   'version-1.2.dev1')
 
             args_list[3][1] = e3
@@ -294,7 +294,7 @@ class GetVersionTestCase(unittest.TestCase):
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
             with patch('gitpy_versioning.open', mock_open(), create=True):
-                self.assertEquals(gitpy_versioning.get_version(), '1.1.dev2')
+                self.assertEqual(gitpy_versioning.get_version(), '1.1.dev2')
 
             args_list[3][1] = e3
             args_list[6][1] = e3
@@ -310,7 +310,7 @@ class GetVersionTestCase(unittest.TestCase):
                                           e6, e7, e8, e9, e10,
                                           e11])) as patch_git:
             with patch('gitpy_versioning.open', mock_open(), create=True):
-                self.assertEquals(gitpy_versioning.get_version('version'),
+                self.assertEqual(gitpy_versioning.get_version('version'),
                                   'version-1.1.dev2')
 
             args_list[3][1] = e3
