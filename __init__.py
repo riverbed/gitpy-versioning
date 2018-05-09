@@ -79,7 +79,8 @@ def git(cmd, dir=None, input=False):
         if dir is not None:
             cwd = os.getcwd()
             os.chdir(dir)
-        process = Popen(['git'] + cmd, stdout=PIPE, stderr=PIPE)
+        process = Popen(['git'] + cmd, stdout=PIPE, stderr=PIPE,
+                        universal_newlines=True)
         stdout, stderr = process.communicate()
     finally:
         if cwd is not None:
@@ -112,7 +113,7 @@ def call_git_describe(abbrev=None):
 
 def get_branch():
     """Return the current branch's name."""
-    input = git(['branch']).decode('utf-8')
+    input = git(['branch'])
     line = [ln for ln in input.split('\n') if ln.startswith('*')][0]
     return line.split()[-1]
 
