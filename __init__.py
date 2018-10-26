@@ -25,11 +25,11 @@ ALPHA_NUM_PERIOD_UNDER_HYPHEN = r'[\w._-]+$'
 ALPHA_PERIOD_PLUS_UNDER_HYPHEN = r'[A-Za-z.+_-]+'
 
 
-FINAL = '\d+(?:\.\d+)*'
-PRE = '(a|b|r?c)\d+'
-POST = '\.post\d+'
-DEV = '\.dev\d+'
-PEP440 = '{0}(?:{1})?(?:{2})?(?:{3})?\s*$'.format(FINAL, PRE, POST, DEV)
+FINAL = r'\d+(?:\.\d+)*'
+PRE = r'(a|b|r?c)\d+'
+POST = r'\.post\d+'
+DEV = r'\.dev\d+'
+PEP440 = r'{0}(?:{1})?(?:{2})?(?:{3})?\s*$'.format(FINAL, PRE, POST, DEV)
 PEP8 = r'[a-z_]+'
 
 
@@ -131,7 +131,7 @@ def get_parents(branch):
     for ln in lines:
         name = ln.split('[')[1].split(']')[0]
         # stripping ^~ and integer on the right
-        name = re.split('\^|~', name)[0]
+        name = re.split(r'\^|~', name)[0]
         if name != branch:
             res.add(name)
     return res
@@ -231,7 +231,7 @@ def find_tag(pkg_name, nondev=False):
                 if not nondev or ('.dev' not in tag):
                     return tag
         # pkg_name is not None
-        elif re.match(PEP8 + '-\d.*$', tag):
+        elif re.match(PEP8 + r'-\d.*$', tag):
             seen_tag_with_pkg = True
             if (tag.startswith(pkg_name + '-') and
                     re.match(PEP440, tag[len(pkg_name) + 1:])):
