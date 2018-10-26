@@ -4,12 +4,15 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
+"""Various unit tests to verify gitpy versioning."""
+
 import unittest
 import gitpy_versioning
 from mock import patch, MagicMock, mock_open
 
 
 def test_pep440_public():
+    """Verify pep440 compliance for public releases."""
     assert gitpy_versioning.valid_public_ver('1.0.dev456')
     assert gitpy_versioning.valid_public_ver('1.0a1')
     assert gitpy_versioning.valid_public_ver('1.0a2.dev456')
@@ -37,6 +40,7 @@ def test_pep440_public():
 
 
 def test_pep440_local():
+    """Verify pep440 compliance for local releases."""
     assert gitpy_versioning.valid_local_ver('abcABCdef')
     assert gitpy_versioning.valid_local_ver('AB-d_e.fG')
     assert not gitpy_versioning.valid_local_ver('AB-d_e@.fG')
@@ -44,9 +48,11 @@ def test_pep440_local():
 
 
 class GetVersionTestCase(unittest.TestCase):
+    """Tests for getting version."""
 
     def verify_call_sequence(self, patched_func, args):
-        """Verify the arguments of each call of patched function
+        """
+        Verify the arguments of each call of patched function.
 
         :param patched_func: patched function to test
         :param args: List of list of arguments for each call
@@ -57,9 +63,7 @@ class GetVersionTestCase(unittest.TestCase):
             self.assertEquals(calls[ind].__getnewargs__()[0][1][0], args[ind])
 
     def test_commit_tagged(self):
-        """Test get_version return expected tag when the latest commit is tagged.
-
-        """
+        """Verify return of expected tag when the latest commit is tagged."""
         # git ls-files test_gitpy_versioning.py --error-unmatch
         e1 = 'test_gitpy_versioning.py'
         # git branch
@@ -99,7 +103,8 @@ class GetVersionTestCase(unittest.TestCase):
             self.verify_call_sequence(patch_git, args_list)
 
     def test_parent_branch(self):
-        """ Test get_version when recent tag is on a parent branch
+        """
+        Test get_version when recent tag is on a parent branch.
 
         need to mock a git function to return a sequence of results
         """
@@ -180,7 +185,8 @@ class GetVersionTestCase(unittest.TestCase):
             self.verify_call_sequence(patch_git, args_list)
 
     def test_non_dev_and_dev(self):
-        """ Test get_version function when
+        """
+        Test get_version function in various scenarios.
 
         1. First test case
         the latest commit is not tagged
