@@ -159,8 +159,8 @@ def valid_public_ver(tag, pkg_name=None):
     if pkg_name is None:
         return valid_pep440(tag)
     else:
-        return (tag.startswith(pkg_name + '-') and
-                valid_pep440(tag[len(pkg_name) + 1:]))
+        return tag.startswith(pkg_name + '-') and valid_pep440(
+            tag[len(pkg_name) + 1:])
 
 
 def tag2cmt(tag):
@@ -233,8 +233,8 @@ def find_tag(pkg_name, nondev=False):
         # pkg_name is not None
         elif re.match(PEP8 + r'-\d.*$', tag):
             seen_tag_with_pkg = True
-            if (tag.startswith(pkg_name + '-') and
-                    re.match(PEP440, tag[len(pkg_name) + 1:])):
+            if tag.startswith(pkg_name + '-') and \
+                    re.match(PEP440, tag[len(pkg_name) + 1:]):
                 if not nondev or ('.dev' not in tag):
                     return tag
         # tag does not start with a pkg_name
@@ -251,14 +251,12 @@ def get_commits(tag):
     :param tag: the tag name
     """
     try:
-        return (int(git(['rev-list', '--count', 'HEAD'])) -
-                int(git(['rev-list', '--count', '{0}'.format(tag)],
-                        input=True)))
+        return int(git(['rev-list', '--count', 'HEAD'])) - \
+            int(git(['rev-list', '--count', '{0}'.format(tag)], input=True))
     except EnvironmentError:
         # Older git versions do not support '--count'
-        return (len(git(['rev-list', 'HEAD']).split('\n')) -
-                len(git(['rev-list', '{0}'.format(tag)],
-                        input=True).split('\n')))
+        return len(git(['rev-list', 'HEAD']).split('\n')) - \
+            len(git(['rev-list', '{0}'.format(tag)], input=True).split('\n'))
 
 
 def git_info():
@@ -335,14 +333,13 @@ def get_version(pkg_name=None, pkg_file=None, v_file='RELEASE-VERSION'):
 
         info = git_info()
 
-        if (valid_public_ver(info.tag, pkg_name) and
-                info.cmt == info.tagged_cmt):
+        if valid_public_ver(info.tag, pkg_name) and \
+                info.cmt == info.tagged_cmt:
             version = info.tag
         else:
             tag = find_tag(pkg_name)
-            if (info.branch != 'master' and
-                    len(tag2branches(tag).
-                        intersection(get_parents(info.branch))) > 0):
+            if info.branch != 'master' and len(tag2branches(tag).intersection(
+                    get_parents(info.branch))) > 0:
                 # the most recent tag is on a parent branch
                 if valid_local_ver(info.branch):
                     # current branch name is a valid local version
